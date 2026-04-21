@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Post-Exam Review Session Survey Link Generator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f5f5f3;
+    color: #1a1a1a;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .card {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 0.5px solid rgba(0,0,0,0.12);
+    padding: 2rem;
+    width: 100%;
+    max-width: 560px;
+  }
+
+  h1 {
+    font-size: 18px;
+    font-weight: 500;
+    color: #1a1a1a;
+    margin-bottom: 0.25rem;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 1.75rem;
+  }
+
+  .field-group {
+    margin-bottom: 1rem;
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 5px;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 14px;
+    border: 0.5px solid rgba(0,0,0,0.2);
+    border-radius: 8px;
+    outline: none;
+    color: #1a1a1a;
+    background: #fff;
+    transition: border-color 0.15s;
+  }
+
+  input[type="text"]:focus {
+    border-color: rgba(0,0,0,0.4);
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
+  }
+
+  input[type="text"]::placeholder { color: #bbb; }
+
+  .divider {
+    border: none;
+    border-top: 0.5px solid rgba(0,0,0,0.1);
+    margin: 1.5rem 0;
+  }
+
+  .result-section { display: none; }
+  .result-section.visible { display: block; }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #999;
+    margin-bottom: 8px;
+  }
+
+  .url-box {
+    font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+    font-size: 11.5px;
+    color: #444;
+    word-break: break-all;
+    background: #f7f7f5;
+    border: 0.5px solid rgba(0,0,0,0.1);
+    border-radius: 8px;
+    padding: 10px 12px;
+    line-height: 1.6;
+    margin-bottom: 10px;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 16px;
+    border-radius: 8px;
+    border: 0.5px solid rgba(0,0,0,0.2);
+    background: #fff;
+    color: #1a1a1a;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+  }
+
+  button:hover { background: #f5f5f3; }
+  button:active { transform: scale(0.98); }
+
+  button.success {
+    color: #1a6e3c;
+    border-color: rgba(26,110,60,0.3);
+    background: #eef7f2;
+  }
+
+  .qr-wrap {
+    margin-top: 1.25rem;
+  }
+
+  #qr-container {
+    display: flex;
+    justify-content: center;
+    margin: 10px 0;
+  }
+
+  #qr-container canvas {
+    border-radius: 8px;
+    border: 0.5px solid rgba(0,0,0,0.08);
+    padding: 10px;
+    background: #fff;
+  }
+
+  .dl-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Post-Exam Review Session Survey Link Generator</h1>
+  <p class="subtitle">Fill in the fields below to generate a customized Qualtrics URL and QR code.</p>
+
+  <div class="field-group">
+    <label for="f-course">Course name</label>
+    <input type="text" id="f-course" placeholder="e.g. Nervous System" oninput="generate()" />
+  </div>
+  <div class="field-group">
+    <label for="f-cohort">Cohort year</label>
+    <input type="text" id="f-cohort" placeholder="e.g. 2027" oninput="generate()" />
+  </div>
+  <div class="field-group">
+    <label for="f-exam">Exam</label>
+    <input type="text" id="f-exam" placeholder="e.g. Midterm 1" oninput="generate()" />
+  </div>
+
+  <div class="result-section" id="result-section">
+    <hr class="divider" />
+
+    <p class="section-label">Generated URL</p>
+    <div class="url-box" id="url-out"></div>
+    <div class="btn-row">
+      <button id="copy-btn" onclick="copyUrl()">Copy URL</button>
+    </div>
+
+    <div class="qr-wrap">
+      <p class="section-label" style="margin-top: 1.25rem;">QR code</p>
+      <div id="qr-container"></div>
+      <div class="dl-row">
+        <button onclick="downloadQR()">Download QR as PNG</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+  const ROOT = "https://uarizona.co1.qualtrics.com/jfe/form/SV_0SuGb3OjAtjMgZ0";
+
+  function generate() {
+    const course = document.getElementById('f-course').value.trim();
+    const cohort = document.getElementById('f-cohort').value.trim();
+    const exam   = document.getElementById('f-exam').value.trim();
+
+    const section = document.getElementById('result-section');
+
+    if (!course && !cohort && !exam) {
+      section.classList.remove('visible');
+      return;
+    }
+
+    const params = new URLSearchParams();
+    if (course) params.set('course', course);
+    if (cohort) params.set('cohort', cohort);
+    if (exam)   params.set('exam',   exam);
+
+    const url = ROOT + '?' + params.toString();
+    document.getElementById('url-out').textContent = url;
+    section.classList.add('visible');
+
+    const container = document.getElementById('qr-container');
+    container.innerHTML = '';
+    new QRCode(container, {
+      text: url,
+      width: 200,
+      height: 200,
+      correctLevel: QRCode.CorrectLevel.M
+    });
+
+    const copyBtn = document.getElementById('copy-btn');
+    copyBtn.textContent = 'Copy URL';
+    copyBtn.classList.remove('success');
+  }
+
+  function copyUrl() {
+    const url = document.getElementById('url-out').textContent;
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = document.getElementById('copy-btn');
+      btn.textContent = 'Copied!';
+      btn.classList.add('success');
+    });
+  }
+
+  function downloadQR() {
+    const canvas = document.querySelector('#qr-container canvas');
+    if (!canvas) return;
+    const course = document.getElementById('f-course').value.trim().replace(/\s+/g, '-') || 'survey';
+    const exam   = document.getElementById('f-exam').value.trim().replace(/\s+/g, '-') || '';
+    const filename = exam ? course + '_' + exam + '_qr.png' : course + '_qr.png';
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+</script>
+</body>
+</html>
